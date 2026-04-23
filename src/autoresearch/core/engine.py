@@ -339,6 +339,7 @@ class AutoResearch:
         )
 
         self._pending = run
+        self._persist_pending(run)
         return result
 
     def log(
@@ -368,6 +369,7 @@ class AutoResearch:
 
         run = self._pending
         self._pending = None
+        self._clear_pending()
 
         # Override fields if provided
         if description:
@@ -534,6 +536,16 @@ class AutoResearch:
         with open(path, "w") as f:
             json.dump(checkpoint, f, indent=2)
 
+    def _persist_pending(self, run: Run) -> None:
+        path = self._cwd / ".autoresearch.pending.json"
+        with open(path, "w") as f:
+            json.dump(run.to_dict(), f, indent=2)
+
+    def _clear_pending(self) -> None:
+        path = self._cwd / ".autoresearch.pending.json"
+        if path.exists():
+            path.unlink()
+
     def _load_state(self) -> None:
         """Load existing state from results log and checkpoint."""
         results_path = self._cwd / self.RESULTS_LOG
@@ -602,3 +614,27 @@ class AutoResearch:
                         self._best_metric = run.metric
 
             self._confidence = self._compute_confidence()
+        # Load pending run if exists
+        self._load_pending()
+
+    def _load_pending(self) -> None:
+        path = self._cwd / ".autoresearch.pending.json"
+        if not path.exists():
+            return
+        try:
+            with open(path) as f:
+                data = json.load(f)
+            self._pending = Run(
+                run=data.get("run", 0),
+                commit=data.get("commit", ""),
+                metric=data.get("metric", 0),
+                metrics=data.get("metrics", {}),
+                status=RunStatus(data.get("status", "pending")),
+                baseline=data.get("baseline", False),
+                description=data.get("description", ""),
+                timestamp=data.get("timestamp", 0),
+                segment=data.get("segment", self._current_segment),
+                confidence=data.get("confidence"),
+            )
+        except (json.JSONDecodeError, KeyError):
+            pass
