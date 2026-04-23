@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+.pytest_cache/
+dist/
+build/
+*.egg
+autoresearch.results.jsonl
+autoresearch.ideas.md
+autoresearch.md
+autoresearch.sh
+autoresearch.checkpoint.json
